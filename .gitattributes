@@ -1,0 +1,45 @@
+# ─────────────────────────────────────────────────────────
+# Asset binari di Unreal.
+# "binary" = -diff -merge -text: git non tenta di fare diff
+# né merge automatici, che su questi file produrrebbero solo
+# corruzione. Vanno trattati come file interi.
+# ─────────────────────────────────────────────────────────
+
+*.uasset  binary
+*.umap    binary
+*.upk     binary
+*.udk     binary
+*.ubulk   binary
+*.uexp    binary
+
+# Media
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.tga  binary
+*.bmp  binary
+*.fbx  binary
+*.wav  binary
+*.mp3  binary
+*.ogg  binary
+
+# ─────────────────────────────────────────────────────────
+# Codice e configurazione: fine riga normalizzati
+# ─────────────────────────────────────────────────────────
+
+*.cpp text
+*.h   text
+*.cs  text
+*.ini text
+*.md  text
+*.csv text
+
+# ─────────────────────────────────────────────────────────
+# Git LFS NON è in uso, per scelta:
+#  - nessun file del progetto supera i 100 MB (limite GitHub);
+#  - la quota LFS gratuita è 1 GB, e una volta superata GitHub
+#    blocca i push finché non si paga;
+#  - dopo la pulizia del template il Content sarà di pochi MB.
+# Se in futuro entrassero asset pesanti (scansioni, texture 4K),
+# rivalutare.
+# ─────────────────────────────────────────────────────────

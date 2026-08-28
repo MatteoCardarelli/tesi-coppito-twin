@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────
+# Unreal Engine — artefatti rigenerabili
+# Escludono ~2,7 GB su 3,9 GB totali del progetto.
+# Chi clona la repo li rigenera compilando.
+# ─────────────────────────────────────────────────────────
+
+Binaries/
+DerivedDataCache/
+Intermediate/
+Build/
+Saved/
+
+# File di progetto generati da Unreal (si rigenerano col
+# "Generate Visual Studio project files")
+*.sln
+*.slnx
+*.suo
+*.sdf
+*.opensdf
+*.opendb
+*.VC.db
+*.VC.opendb
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# Sistema
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ─────────────────────────────────────────────────────────
+# NOTA per la tesi: i log del pilot NON vanno in questa repo.
+# Finiscono in Saved/ (già escluso) e vanno archiviati a parte,
+# perché sono dati di ricerca, non codice.
+# ─────────────────────────────────────────────────────────
