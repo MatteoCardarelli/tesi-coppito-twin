@@ -26,4 +26,16 @@ public:
 	/** Percorso della cartella dei log comportamentali. */
 	UFUNCTION(BlueprintPure, Category = "CoppitoTwin|File")
 	static FString GetLogDirectory();
+
+	/** Compone una riga dello STREAM log. Precisione fissa, separatore decimale sempre '.'. */
+	UFUNCTION(BlueprintPure, Category = "CoppitoTwin|File")
+	static FString MakeStreamRow(float T, FVector Position, float Yaw, float Pitch, float Speed, float Fps);
+
+	/** Compone una riga dell'EVENT log. Value non deve contenere virgole. */
+	UFUNCTION(BlueprintPure, Category = "CoppitoTwin|File")
+	static FString MakeEventRow(float T, const FString& EventName, const FString& Value, FVector Position);
+
+	/** Unisce le righe con un a capo e le scrive su file. Restituisce false se la scrittura fallisce. */
+	UFUNCTION(BlueprintCallable, Category = "CoppitoTwin|File")
+	static bool SaveLinesToFile(const TArray<FString>& Lines, const FString& FileName);
 };
