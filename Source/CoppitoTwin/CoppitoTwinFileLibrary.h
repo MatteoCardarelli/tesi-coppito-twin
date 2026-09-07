@@ -4,6 +4,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "CoppitoTwinFileLibrary.generated.h"
 
+class UCharacterMovementComponent;
+
 /**
  * Scrittura di file di testo esposta ai Blueprint.
  * Unreal non offre un nodo nativo per farlo (verificato su UE 5.8): questa
@@ -38,4 +40,22 @@ public:
 	/** Unisce le righe con un a capo e le scrive su file. Restituisce false se la scrittura fallisce. */
 	UFUNCTION(BlueprintCallable, Category = "CoppitoTwin|File")
 	static bool SaveLinesToFile(const TArray<FString>& Lines, const FString& FileName);
+
+	/**
+	 * Scrive i metadati di sessione in JSON.
+	* I parametri di movimento sono letti dal componente passato, così non possono
+	* divergere dalla configurazione reale del pawn.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "CoppitoTwin|File")
+	static bool SaveSessionMetadata(
+		UCharacterMovementComponent* Movement,
+		const FString& ParticipantID,
+		const FString& Condition,
+		const FString& BarrierConfig,
+		float SamplingHz,
+		float MinPathCm,
+		float SessionDurationSec,
+		int32 StreamRows,
+		int32 EventRows,
+		const FString& FileName);
 };
