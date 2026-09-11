@@ -1,0 +1,7 @@
+﻿.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Output dell'analisi: si rigenerano dai log, non si versionano
+output/
