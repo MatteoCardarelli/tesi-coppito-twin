@@ -7,7 +7,6 @@ from pandas.core import generic
 from pathlib import Path
 from .sessione import ERROR, Referto, Sessione, WARN
 
-
 COLONNE_STREAM = (
     "t", 
     "pos_x", 
