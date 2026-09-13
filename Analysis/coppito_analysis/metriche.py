@@ -6,6 +6,9 @@ restituisce None.
 
 from .sessione import Sessione
 
+from .sessione import Sessione
+
+FPS_SOGLIA_BASSA = 30.0   # sotto: navigazione meno fluida; usata anche da validazione
 
 def travel_time_s(sessione: Sessione) -> float | None:
     """Durata del compito: TASK_END.t − TASK_START.t"""
@@ -70,10 +73,27 @@ def pao_pct(sessione: Sessione) -> float | None:
 
 def optimal_walking_speed_cms(sessione: Sessione) -> float | None:
     """Percorso minimo diviso travel time, in cm/s"""
-    
+
     minimo = sessione.min_path_cm
     tempo = travel_time_s(sessione)
     if minimo is None or tempo is None:
         return None
 
     return minimo / tempo
+
+def frame_rate_compito(sessione: Sessione) -> dict[str, float] | None:
+    """Frame rate durante il compito: media, minimo e quota sotto soglia"""
+    
+    campioni = sessione.stream_compito
+    if campioni is None or "fps" not in campioni.columns:
+        return None
+
+    fps = campioni["fps"].dropna()
+    if fps.empty:
+        return None
+
+    return {
+        "fps_medio": float(fps.mean()),
+        "fps_minimo": float(fps.min()),
+        "fps_sotto_soglia_pct": float((fps < FPS_SOGLIA_BASSA).mean() * 100),
+    }

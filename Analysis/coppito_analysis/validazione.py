@@ -11,11 +11,10 @@ from .sessione import (
     Sessione,
 )
 
-from .metriche import alternativa_scelta, esitazione_s, lunghezza_percorso_cm, travel_time_s
+from .metriche import FPS_SOGLIA_BASSA, alternativa_scelta, esitazione_s, lunghezza_percorso_cm, travel_time_s
 
 TOLLERANZA_INTEGRITA = 0.05    # soglia di progetto, da tarare sui dati del pilot
 FATTORE_BUCO = 2.0             # intervallo oltre il doppio del nominale = campione perso
-FPS_SOGLIA_BASSA = 30.0        # sotto: navigazione meno fluida, il comportamento ne risente
 FPS_QUOTA_SEGNALABILE = 0.01   # sotto l'1% dei campioni è un episodio isolato
 
 EVENTI_RICHIESTI = ("TASK_START", "TASK_END")
