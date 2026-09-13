@@ -39,7 +39,6 @@ def leggi_stream(percorso: str | Path) -> pd.DataFrame:
 
     return df
 
-
 def leggi_eventi(percorso: str | Path) -> pd.DataFrame:
     """Legge un file *_events.csv"""
 
@@ -60,18 +59,15 @@ def leggi_eventi(percorso: str | Path) -> pd.DataFrame:
 
     return df
 
-
 def leggi_meta(percorso: str | Path) -> dict:
     """Legge un file *_meta.json"""
 
     return json.loads(Path(percorso).read_text(encoding="utf-8-sig"))
 
-
 def deduplica_timestamp(stream: pd.DataFrame) -> pd.DataFrame:
     """Elimina i campioni che condividono il timestamp con uno precedente"""
 
     return stream.drop_duplicates(subset="t", keep="first").reset_index(drop=True)
-
 
 def trova_sessioni(cartella: str | Path) -> list[str]:
     """Gli id delle sessioni presenti in una cartella, in ordine alfabetico"""
@@ -79,12 +75,10 @@ def trova_sessioni(cartella: str | Path) -> list[str]:
     percorsi = Path(cartella).glob(f"*{SUFFISSO_STREAM}")
     return sorted(p.name.removesuffix(SUFFISSO_STREAM) for p in percorsi)
 
-
 def _eventi_vuoti() -> pd.DataFrame:
     """Una tabella eventi con le colonne attese e nessuna riga"""
 
     return pd.DataFrame(columns=list(COLONNE_EVENTI_NUMERICHE + COLONNE_EVENTI_TESTO))
-
 
 def carica_sessione(cartella: str | Path, session_id: str) -> Sessione:
     """Assembla una Sessione dai tre file"""
@@ -152,3 +146,4 @@ def carica_sessione(cartella: str | Path, session_id: str) -> Sessione:
         eventi=eventi,
         referto=referto,
     )
+

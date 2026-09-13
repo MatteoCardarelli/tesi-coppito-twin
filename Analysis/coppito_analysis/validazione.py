@@ -11,6 +11,8 @@ from .sessione import (
     Sessione,
 )
 
+from .metriche import alternativa_scelta, esitazione_s, lunghezza_percorso_cm, travel_time_s
+
 TOLLERANZA_INTEGRITA = 0.05    # soglia di progetto, da tarare sui dati del pilot
 FATTORE_BUCO = 2.0             # intervallo oltre il doppio del nominale = campione perso
 FPS_SOGLIA_BASSA = 30.0        # sotto: navigazione meno fluida, il comportamento ne risente
@@ -26,7 +28,6 @@ def _eventi_inutilizzabili(sessione: Sessione) -> bool:
 
     return (sessione.referto.contiene("EVENTI_ASSENTI")
             or sessione.referto.contiene("EVENTI_MALFORMATI"))
-
 
 def controlla_colonne(sessione: Sessione) -> None:
     """Verifica che i file abbiano le colonne attese e valori leggibili"""
@@ -60,7 +61,6 @@ def controlla_colonne(sessione: Sessione) -> None:
                 f"{', '.join(illeggibili)}",
             )
 
-
 def controlla_duplicati(sessione: Sessione) -> None:
     """Verifica che le righe con lo stesso timestamp fossero lo stesso istante"""
 
@@ -87,7 +87,6 @@ def controlla_duplicati(sessione: Sessione) -> None:
             "timestamp: non erano lo stesso istante ripetuto, e la deduplica ha "
             "perso dati reali",
         )
-
 
 def controlla_conteggi(sessione: Sessione) -> None:
     """Confronta i conteggi dichiarati nei metadati con i record reali"""
@@ -118,7 +117,6 @@ def controlla_conteggi(sessione: Sessione) -> None:
                 f"{chiave} dichiara {dichiarati} contro {reali} record reali: "
                 f"scarto di {scarto}, non spiegabile con l'intestazione",
             )
-
 
 def controlla_tempo(sessione: Sessione) -> None:
     """Verifica che i timestamp siano crescenti e senza interruzioni"""
@@ -160,7 +158,6 @@ def controlla_tempo(sessione: Sessione) -> None:
             f"{buchi.sum():.3f} s complessivi senza campioni",
         )
 
-
 def controlla_integrita(sessione: Sessione) -> None:
     """Verifica che il numero di campioni sia compatibile con la frequenza"""
 
@@ -195,7 +192,6 @@ def controlla_integrita(sessione: Sessione) -> None:
                 f"{misurata:.2f} {spiegazione} "
                 f"(attesi {attesa:.1f} Hz, scarto {scarto:.1%})",
             )
-
 
 def controlla_eventi(sessione: Sessione) -> None:
     """Verifica che gli eventi necessari alle metriche puntuali ci siano"""
@@ -243,6 +239,35 @@ def controlla_eventi(sessione: Sessione) -> None:
             "nessun FORK_ENTER: l'alternativa scelta non è determinabile",
         )
 
+def _presenti(sessione: Sessione, *nomi: str) -> bool:
+    """Vero se ciascuno degli eventi nominati compare almeno una volta."""
+    return all(not sessione.evento(nome).empty for nome in nomi)
+
+def controlla_coerenza_eventi(sessione: Sessione) -> None:
+    """Spiega i None delle metriche puntuali quando gli eventi ci sono"""
+
+    if _presenti(sessione, "TASK_START", "TASK_END") and travel_time_s(sessione) is None:
+        sessione.referto.aggiungi(
+            ERROR,
+            "TASK_INCOERENTE",
+            "TASK_END non è successivo a TASK_START: travel time non calcolabile",
+        )
+
+    if _presenti(sessione, *COPPIA_BARRIERA) and esitazione_s(sessione) is None:
+        sessione.referto.aggiungi(
+            WARN,
+            "BARRIERA_INCOERENTE",
+            "nessun BARRIER_DEPART successivo al primo BARRIER_REACH: "
+            "l'esitazione al blocco non è calcolabile",
+        )
+
+    if _presenti(sessione, "FORK_ENTER") and alternativa_scelta(sessione) is None:
+        sessione.referto.aggiungi(
+            WARN,
+            "FORK_SENZA_RAMO",
+            "il primo FORK_ENTER non ha value: al trigger del bivio manca il nome "
+            "del ramo, e l'alternativa scelta non è determinabile",
+        )
 
 def controlla_fps(sessione: Sessione) -> None:
     """Sorveglia il frame rate"""
@@ -280,7 +305,6 @@ def controlla_fps(sessione: Sessione) -> None:
                 f"{quota:.1%} dei campioni sotto {soglia:.0f} fps "
                 f"(minimo {fps.min():.1f}): {spiegazione}",
             )
-
 
 def controlla_metadati(sessione: Sessione) -> None:
     """Annota ciò che i metadati non dichiarano e che serve alle metriche"""
@@ -322,6 +346,28 @@ def controlla_metadati(sessione: Sessione) -> None:
             "ridefinibile a posteriori",
         )
 
+def controlla_percorso_minimo(sessione: Sessione) -> None:
+    """Segnala un percorso più corto del minimo praticabile dichiarato"""
+
+    minimo = sessione.min_path_cm
+    percorso = lunghezza_percorso_cm(sessione)
+    if minimo is None or percorso is None:
+        return   # già spiegato da MIN_PATH_NON_MISURATO o dai rilievi sugli eventi
+
+    campioni = sessione.stream_compito
+    if "speed" not in campioni.columns or sessione.sampling_hz <= 0:
+        return   # già segnalati da controlla_colonne e controlla_integrita
+
+    tolleranza_cm = 2 * campioni["speed"].max() / sessione.sampling_hz
+    scarto_cm = minimo - percorso
+    if scarto_cm > tolleranza_cm:
+        sessione.referto.aggiungi(
+            ERROR,
+            "PERCORSO_SOTTO_MINIMO",
+            f"percorso di {percorso:.1f} cm contro un minimo praticabile di "
+            f"{minimo:.1f} cm ({scarto_cm:.1f} cm in meno, tolleranza "
+            f"{tolleranza_cm:.1f} cm): min_path_cm sbagliato o barriera valicabile",
+        )
 
 CONTROLLI = (
     controlla_colonne,
@@ -330,14 +376,15 @@ CONTROLLI = (
     controlla_tempo,
     controlla_integrita,
     controlla_eventi,
+    controlla_coerenza_eventi,
     controlla_fps,
     controlla_metadati,
+    controlla_percorso_minimo,
 )
-
 
 def valida(sessione: Sessione) -> Referto:
     """Esegue tutti i controlli sulla sessione e restituisce il suo referto"""
-    
+
     for controllo in CONTROLLI:
         controllo(sessione)
     return sessione.referto

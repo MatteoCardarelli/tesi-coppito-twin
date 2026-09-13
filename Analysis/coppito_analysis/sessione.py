@@ -40,7 +40,6 @@ class Rilievo:
     def __str__(self) -> str:
         return f"[{self.livello:<5}] {self.codice}: {self.messaggio}"
 
-
 @dataclass
 class Referto:
     """L'esito della validazione di una sessione"""
@@ -67,7 +66,6 @@ class Referto:
         if not self.rilievi:
             return "  nessun rilievo"
         return "\n".join(f"  {r}" for r in self.rilievi)
-
 
 @dataclass
 class Sessione:
