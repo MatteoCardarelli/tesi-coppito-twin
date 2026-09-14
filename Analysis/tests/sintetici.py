@@ -14,7 +14,6 @@ FPS = 60.0
 QUOTA_Z = 98.1
 VELOCITA_CMS = 140.0
 
-
 def crea_sessione(t, x, y, eventi=None, session_id="SINT", **meta):
     """Una Sessione sana costruita da una traiettoria"""
 
@@ -77,13 +76,11 @@ def crea_sessione(t, x, y, eventi=None, session_id="SINT", **meta):
         referto=Referto(session_id),
     )
 
-
 def rettilineo(durata_s):
     """Rettilineo lungo x a 140 cm/s, campionato a 20 Hz: restituisce t, x, y"""
 
     t = np.linspace(0.0, durata_s, round(durata_s * SAMPLING_HZ) + 1)
     return t, VELOCITA_CMS * t, np.zeros_like(t)
-
 
 def percorso(tratti):
     """Traiettoria a tratti: ("dritto", s), ("fermo", s), ("indietro", s), ("curva", gradi, s)"""
@@ -109,7 +106,6 @@ def percorso(tratti):
 
     t = np.arange(0.0, tempi[-1], 1 / SAMPLING_HZ)
     return t, np.interp(t, tempi, xs), np.interp(t, tempi, ys)
-
 
 def scrivi_sessione(cartella, sessione):
     """Scrive i tre file della sessione come li scrive il logger"""

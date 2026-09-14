@@ -7,7 +7,6 @@ from coppito_analysis.sessione import ERROR, INFO, WARN
 from coppito_analysis.validazione import valida
 from tests.sintetici import crea_sessione, rettilineo
 
-
 def sessione(eventi=None, **meta):
     """Rettilineo di 10 s (201 campioni), eventi indicati per indice di campione"""
 
@@ -16,12 +15,10 @@ def sessione(eventi=None, **meta):
         eventi = [(t[i], nome, valore) for i, nome, valore in eventi]
     return crea_sessione(t, x, y, eventi=eventi, **meta)
 
-
 def colonna_mancante():
     s = sessione()
     s.stream_raw = s.stream_raw.drop(columns="cam_pitch")
     return s
-
 
 def duplicato_con_posizione_diversa():
     s = sessione(stream_rows=202)
@@ -29,35 +26,29 @@ def duplicato_con_posizione_diversa():
     s.stream_raw = pd.concat([copia, s.stream_raw], ignore_index=True)
     return s
 
-
 def buco_temporale():
     s = sessione(stream_rows=196)
     s.stream_raw = s.stream_raw.drop(index=range(50, 55))
     s.stream = s.stream.drop(index=range(50, 55)).reset_index(drop=True)
     return s
 
-
 def eventi_vuoti():
     s = sessione(event_rows=0)
     s.eventi = s.eventi.iloc[0:0]
     return s
-
 
 def metadati_vuoti():
     s = sessione()
     s.meta = {}
     return s
 
-
 def fps_bassi():
     s = sessione()
     s.stream["fps"] = 25.0
     return s
 
-
 SENZA_TASK_END = [(0, "TASK_START", ""), (67, "BARRIER_REACH", ""), (100, "BARRIER_DEPART", ""),
                   (134, "FORK_ENTER", "left")]
-
 CASI = [
     pytest.param(sessione, [], id="sessione sana"),
     pytest.param(colonna_mancante, [(WARN, "COLONNE_MANCANTI")], id="colonna mancante"),
@@ -82,7 +73,6 @@ CASI = [
                  id="percorso sotto il minimo"),
     pytest.param(lambda: sessione(min_path_cm=1410.0), [], id="scarto entro la tolleranza"),
 ]
-
 
 @pytest.mark.parametrize("crea, attesi", CASI)
 def test_rilievi_del_referto(crea, attesi):

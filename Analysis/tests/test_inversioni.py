@@ -16,7 +16,6 @@ SCENARI = [
     pytest.param([("indietro", 4.0), ("fermo", 3.0), ("dritto", 4.0)], 0, id="sosta camminando verso ovest"),
 ]
 
-
 @pytest.mark.parametrize("tratti, attese", SCENARI)
 def test_inversioni_contate(tratti, attese):
     assert ritorni_sui_passi(crea_sessione(*percorso(tratti))) == attese
