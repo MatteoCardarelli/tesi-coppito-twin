@@ -4,11 +4,14 @@ Ogni funzione restituisce una Figure senza salvarla: nome e formato del file
 li sceglie chi la chiama.
 """
 
+import numpy as np
 from matplotlib.figure import Figure
+from matplotlib.ticker import MultipleLocator
 
-from .inversioni import intervalli_di_inversione
+from .inversioni import VELOCITA_MINIMA_CMS, direzioni_di_marcia, intervalli_di_inversione, passi_di_marcia
 from .sessione import Sessione
 from .metriche import alternativa_scelta
+
 
 # evento: (marcatore, etichetta in legenda)
 EVENTI_DA_SEGNARE = {
@@ -96,4 +99,38 @@ def grafico_sessioni_sovrapposte(sessioni: list[Sessione]) -> Figure:
     uniche = dict(zip(etichette, maniglie))
     if uniche:
         figura.legend(uniche.values(), uniche.keys(), loc="outside lower center", ncols=3, fontsize="small")
+    return figura
+
+def grafico_direzione_velocita(sessione: Sessione) -> Figure | None:
+    """Velocità e direzione di marcia nel tempo, con la soglia di velocità e le inversioni"""
+
+    passi = passi_di_marcia(sessione)
+    if passi is None:
+        return None
+    direzioni = direzioni_di_marcia(sessione)
+
+    figura = Figure(figsize=(8, 6), layout="constrained")
+    assi_velocita, assi_direzione = figura.subplots(2, 1, sharex=True)
+
+    assi_velocita.plot(passi["t"], passi["velocita_cms"], color="#2a78d6", linewidth=1.5,
+                       label="velocità di ogni passo")
+    assi_velocita.axhline(VELOCITA_MINIMA_CMS, color="black", linestyle="--", linewidth=1,
+                          label=f"soglia di velocità ({VELOCITA_MINIMA_CMS:.0f} cm/s)")
+
+    gradi = np.degrees(np.unwrap(np.radians(direzioni["direzione_gradi"])))
+    assi_direzione.plot(direzioni["t"], gradi, ".", color="#2a78d6", markersize=4,
+                        label="direzione dei passi sopra soglia")
+
+    for numero, (inizio, fine) in enumerate(intervalli_di_inversione(sessione)):
+        assi_velocita.axvspan(inizio, fine, color="tab:red", alpha=0.15,
+                              label="finestra di un'inversione di marcia" if numero == 0 else None)
+        assi_direzione.axvspan(inizio, fine, color="tab:red", alpha=0.15)
+
+    assi_velocita.set_ylabel("velocità (cm/s)")
+    assi_direzione.set_ylabel("direzione di marcia (°)")
+    assi_direzione.yaxis.set_major_locator(MultipleLocator(90))
+    assi_direzione.set_ylim(gradi.min() - 90, gradi.max() + 90)
+    assi_direzione.set_xlabel("tempo dall'inizio della registrazione (s)")
+    figura.suptitle(sessione.session_id)
+    figura.legend(loc="outside lower center", ncols=2, fontsize="small")
     return figura
