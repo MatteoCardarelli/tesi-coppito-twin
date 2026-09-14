@@ -9,8 +9,8 @@ VELOCITA_MINIMA_CMS = 20.0   # sotto: la direzione di un passo è rumore; da tar
 SOGLIA_INVERSIONE_GRADI = 135.0   # Kalantari et al. 2023; da tarare sul pilot
 FINESTRA_INVERSIONE_S = 2.0       # a 140 cm/s ≈ U larga 2,5 m; da tarare sulla larghezza dei corridoi
 
-def direzioni_di_marcia(sessione: Sessione) -> pd.DataFrame | None:
-    """Direzione di spostamento di ogni passo del compito, in gradi"""
+def passi_di_marcia(sessione: Sessione) -> pd.DataFrame | None:
+    """Direzione e velocità di ogni passo del compito, senza filtri"""
 
     campioni = sessione.stream_compito
     if campioni is None:
@@ -24,12 +24,19 @@ def direzioni_di_marcia(sessione: Sessione) -> pd.DataFrame | None:
     velocita = np.hypot(passi["pos_x"], passi["pos_y"]) / passi["t"]
     direzione = np.degrees(np.arctan2(passi["pos_y"], passi["pos_x"]))
 
-    tabella = pd.DataFrame({
+    return pd.DataFrame({
         "t": punti["t"].iloc[1:],
         "direzione_gradi": direzione,
         "velocita_cms": velocita,
-    })
-    return tabella.loc[tabella["velocita_cms"] >= VELOCITA_MINIMA_CMS].reset_index(drop=True)
+    }).reset_index(drop=True)
+
+def direzioni_di_marcia(sessione: Sessione) -> pd.DataFrame | None:
+    """I passi del compito abbastanza veloci da avere una direzione di marcia"""
+
+    passi = passi_di_marcia(sessione)
+    if passi is None:
+        return None
+    return passi.loc[passi["velocita_cms"] >= VELOCITA_MINIMA_CMS].reset_index(drop=True)
 
 def intervalli_di_inversione(sessione: Sessione) -> list[tuple[float, float]] | None:
     """Gli intervalli di tempo in cui il partecipante ha invertito la marcia"""
