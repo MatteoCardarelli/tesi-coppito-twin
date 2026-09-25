@@ -13,6 +13,11 @@ FString UCoppitoTwinFileLibrary::GetLogDirectory()
 	return FPaths::ProjectSavedDir() / TEXT("BehaviourLogs");
 }
 
+FString UCoppitoTwinFileLibrary::MakeSessionId(const FString& ParticipantID)
+{
+	return ParticipantID + TEXT("_") + FDateTime::UtcNow().ToString(TEXT("%Y-%m-%d_%H%M%S"));
+}
+
 bool UCoppitoTwinFileLibrary::SaveStringToFile(const FString& Content, const FString& FileName, bool bAppend)
 {
 	const FString Directory = GetLogDirectory();

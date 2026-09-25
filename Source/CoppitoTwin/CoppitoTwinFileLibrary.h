@@ -29,6 +29,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "CoppitoTwin|File")
 	static FString GetLogDirectory();
 
+	/**
+	 * Identificativo univoco di sessione: <ParticipantID>_<AAAA-MM-GG>_<hhmmss>, ora UTC.
+	 * Non e' Pure di proposito: legge l'orologio, e un nodo Pure verrebbe rivalutato
+	 * a ogni collegamento, dando istanti diversi. Va chiamato una volta e salvato.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "CoppitoTwin|File")
+	static FString MakeSessionId(const FString& ParticipantID);
+
 	/** Compone una riga dello STREAM log. Precisione fissa, separatore decimale sempre '.'. */
 	UFUNCTION(BlueprintPure, Category = "CoppitoTwin|File")
 	static FString MakeStreamRow(float T, FVector Position, float Yaw, float Pitch, float Speed, float Fps);
