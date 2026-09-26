@@ -8,7 +8,7 @@ import numpy as np
 from matplotlib.figure import Figure
 from matplotlib.ticker import MultipleLocator
 
-from .inversioni import VELOCITA_MINIMA_CMS, direzioni_di_marcia, intervalli_di_inversione, passi_di_marcia
+from .inversioni import VELOCITA_MINIMA_CMS, direzioni_di_marcia, intervalli_di_inversione, passi_di_marcia, tratti_in_quota
 from .sessione import Sessione
 from .metriche import alternativa_scelta
 
@@ -29,7 +29,11 @@ STILI_ALTERNATIVE = {
 }
 
 def grafico_traiettoria(sessione: Sessione) -> Figure:
-    """Pianta della traiettoria, con gli eventi e le inversioni di marcia"""
+    """Pianta della traiettoria, con gli eventi, le inversioni di marcia e i tratti in scala
+
+    Con due piani la pianta li sovrappone: i tratti in scala, in viola, segnano dove si
+    passa dall'uno all'altro.
+    """
 
     campioni = sessione.stream_compito
     titolo = sessione.session_id
@@ -41,6 +45,11 @@ def grafico_traiettoria(sessione: Sessione) -> Figure:
     figura = Figure(figsize=(8, 6), layout="constrained")
     assi = figura.subplots()
     assi.plot(punti["pos_x"], punti["pos_y"], color="0.6", linewidth=1, label="traiettoria")
+
+    for numero, (inizio, fine) in enumerate(tratti_in_quota(sessione) or []):
+        tratto = punti.loc[punti["t"].between(inizio, fine)]
+        assi.plot(tratto["pos_x"], tratto["pos_y"], color="tab:purple", linewidth=2, linestyle="--",
+                  label="tratto in scala (cambio di quota)" if numero == 0 else None)
 
     for numero, (inizio, fine) in enumerate(intervalli_di_inversione(sessione) or []):
         tratto = punti.loc[punti["t"].between(inizio, fine)]

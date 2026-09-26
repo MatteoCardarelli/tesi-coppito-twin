@@ -1,5 +1,6 @@
 """Test delle inversioni di marcia (inversioni.py)"""
 
+import numpy as np
 import pytest
 
 from coppito_analysis.inversioni import ritorni_sui_passi
@@ -19,3 +20,27 @@ SCENARI = [
 @pytest.mark.parametrize("tratti, attese", SCENARI)
 def test_inversioni_contate(tratti, attese):
     assert ritorni_sui_passi(crea_sessione(*percorso(tratti))) == attese
+
+RAMPA_S = 300.0 / 140.0   # rampa di 3 m in pianta, come le scale d'angolo del modello
+
+def salita_a_due_rampe(dopo):
+    """Piano, rampa, pianerottolo, rampa, poi i tratti `dopo` al piano di sopra
+
+    Sul pianerottolo: 1 m avanti, giro stretto di 180°, 1 m avanti. Dura più della
+    finestra delle inversioni, quindi una finestra può starci dentro senza toccare le rampe.
+    """
+
+    pianerottolo = [("dritto", 1.0), ("curva", 180.0, 0.5), ("dritto", 1.0)]
+    tratti = [("dritto", 4.0), ("dritto", RAMPA_S)] + pianerottolo + [("dritto", RAMPA_S)] + dopo
+    t, x, y = percorso(tratti)
+    tappe = np.cumsum([0.0, 4.0, RAMPA_S, 2.5, RAMPA_S])
+    z = np.interp(t, tappe, [0.0, 0.0, 175.0, 175.0, 350.0])
+    sessione = crea_sessione(t, x, y)
+    sessione.stream["pos_z"] = z
+    return sessione
+
+def test_il_pianerottolo_non_e_un_inversione():
+    assert ritorni_sui_passi(salita_a_due_rampe([("dritto", 4.0)])) == 0
+
+def test_al_piano_di_sopra_le_inversioni_si_contano_ancora():
+    assert ritorni_sui_passi(salita_a_due_rampe([("dritto", 4.0), ("indietro", 4.0)])) == 1

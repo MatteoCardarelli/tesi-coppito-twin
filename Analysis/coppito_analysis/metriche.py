@@ -6,8 +6,6 @@ restituisce None.
 
 from .sessione import Sessione
 
-from .sessione import Sessione
-
 FPS_SOGLIA_BASSA = 30.0   # sotto: navigazione meno fluida; usata anche da validazione
 
 def travel_time_s(sessione: Sessione) -> float | None:
@@ -48,18 +46,22 @@ def alternativa_scelta(sessione: Sessione) -> str | None:
     return ramo or None
 
 def lunghezza_percorso_cm(sessione: Sessione) -> float | None:
-    """Lunghezza del percorso durante il compito: somma delle distanze fra campioni"""
+    """Lunghezza del percorso durante il compito: somma delle distanze 3D fra campioni
+
+    In 3D perché con due piani i tratti in scala hanno una componente verticale:
+    in pianta sarebbero sottostimati, e con loro PAO e optimal walking speed.
+    """
 
     campioni = sessione.stream_compito
     if campioni is None:
         return None
 
-    posizioni = campioni[["pos_x", "pos_y"]].dropna()
+    posizioni = campioni[["pos_x", "pos_y", "pos_z"]].dropna()
     if len(posizioni) < 2:
         return None
 
     passi = posizioni.diff().iloc[1:]
-    return float(((passi["pos_x"] ** 2 + passi["pos_y"] ** 2) ** 0.5).sum())
+    return float(((passi["pos_x"] ** 2 + passi["pos_y"] ** 2 + passi["pos_z"] ** 2) ** 0.5).sum())
 
 def pao_pct(sessione: Sessione) -> float | None:
     """Percentage Above Optimal: di quanto il percorso supera il minimo, in %"""

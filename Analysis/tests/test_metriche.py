@@ -20,11 +20,11 @@ def con_eventi(eventi, durata_s=10.0):
     t, x, y = rettilineo(durata_s)
     return crea_sessione(t, x, y, eventi=[(t[i], nome, valore) for i, nome, valore in eventi])
 
-def test_la_lunghezza_e_in_2d_e_solo_dentro_il_compito():
+def test_la_lunghezza_e_in_3d_e_solo_dentro_il_compito():
     sessione = con_eventi([(100, "TASK_START", ""), (300, "TASK_END", "")], durata_s=15.0)
     sessione.stream["pos_z"] = 98.1 + 20.0 * sessione.stream["t"]
 
-    assert lunghezza_percorso_cm(sessione) == pytest.approx(1400.0)
+    assert lunghezza_percorso_cm(sessione) == pytest.approx(200 * np.hypot(7.0, 1.0))
 
 def test_una_posizione_illeggibile_non_accorcia_il_percorso():
     sessione = crea_sessione(*rettilineo(10.0))

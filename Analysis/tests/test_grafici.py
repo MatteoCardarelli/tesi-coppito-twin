@@ -2,6 +2,8 @@
 
 from io import BytesIO
 
+import numpy as np
+
 from coppito_analysis.grafici import grafico_direzione_velocita, grafico_sessioni_sovrapposte, grafico_traiettoria
 from tests.sintetici import crea_sessione, percorso
 
@@ -32,3 +34,10 @@ def test_la_legenda_ha_una_voce_per_categoria():
 
     voci = [testo.get_text() for testo in figura.legends[0].get_texts()]
     assert voci == ["left", "ramo con nome non previsto", "ingresso nel bivio"]
+def test_la_pianta_segna_i_tratti_in_scala():
+    t, x, y = percorso([("dritto", 4.0), ("dritto", 3.0), ("dritto", 4.0)])
+    sessione = crea_sessione(t, x, y)
+    sessione.stream["pos_z"] = np.interp(t, [0.0, 4.0, 7.0, 11.0], [0.0, 0.0, 175.0, 175.0])
+
+    voci = [testo.get_text() for testo in grafico_traiettoria(sessione).legends[0].get_texts()]
+    assert "tratto in scala (cambio di quota)" in voci
