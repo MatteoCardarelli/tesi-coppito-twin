@@ -52,7 +52,10 @@ public:
 	/**
 	 * Scrive i metadati di sessione in JSON.
 	* I parametri di movimento sono letti dal componente passato, così non possono
-	* divergere dalla configurazione reale del pawn.
+	* divergere dalla configurazione reale del pawn. Dal mondo dello stesso componente
+	* si leggono il nome del livello e le posizioni degli attori con tag "Barrier" e
+	* "Fork" (uno per tag; se manca o è ripetuto il campo non viene scritto).
+	* session_id è FileName senza il suffisso "_meta.json".
 	*/
 	UFUNCTION(BlueprintCallable, Category = "CoppitoTwin|File")
 	static bool SaveSessionMetadata(

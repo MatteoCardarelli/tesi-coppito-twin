@@ -42,6 +42,16 @@ def test_una_sessione_non_caricabile_non_ferma_lo_studio(tmp_path):
     assert [s.session_id for s in sessioni] == ["P01"]
     assert codici(studio) == ["SESSIONE_NON_CARICABILE"]
 
+def test_una_sessione_senza_stream_viene_segnalata_e_non_sparisce(tmp_path):
+    scrivi_sessione(tmp_path, sessione("P01"))
+    (tmp_path / "P01_stream.csv").unlink()
+
+    sessioni, studio = carica_tutte(tmp_path)
+
+    assert sessioni == []
+    assert codici(studio) == ["SESSIONE_NON_CARICABILE"]
+    assert "stream non trovato" in studio.rilievi[0].messaggio
+
 def test_un_difetto_del_codice_ferma_l_analisi(tmp_path, monkeypatch):
     scrivi_sessione(tmp_path, sessione("P01"))
 

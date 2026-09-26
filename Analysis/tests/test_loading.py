@@ -30,11 +30,13 @@ def test_la_deduplica_tiene_la_prima_riga():
 
     assert deduplica_timestamp(stream)["pos_x"].tolist() == [1.0, 3.0]
 
-def test_l_id_di_sessione_e_il_nome_dello_stream_senza_suffisso(tmp_path):
-    (tmp_path / "P03_2026-09-10_1530_stream.csv").write_text("t\n")
+def test_l_id_di_sessione_e_il_nome_di_uno_qualunque_dei_tre_file(tmp_path):
+    (tmp_path / "P03_2026-09-10_153000_stream.csv").write_text("t\n")
+    (tmp_path / "P03_2026-09-10_153000_meta.json").write_text("{}")
     (tmp_path / "P09_meta.json").write_text("{}")
+    (tmp_path / "test.csv").write_text("x\n")
 
-    assert trova_sessioni(tmp_path) == ["P03_2026-09-10_1530"]
+    assert trova_sessioni(tmp_path) == ["P03_2026-09-10_153000", "P09"]
 
 def test_metadati_corrotti_non_fermano_il_caricamento(tmp_path):
     scrivi_sessione(tmp_path, crea_sessione(*rettilineo(10.0), session_id="P01"))

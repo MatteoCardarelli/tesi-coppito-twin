@@ -70,10 +70,16 @@ def deduplica_timestamp(stream: pd.DataFrame) -> pd.DataFrame:
     return stream.drop_duplicates(subset="t", keep="first").reset_index(drop=True)
 
 def trova_sessioni(cartella: str | Path) -> list[str]:
-    """Gli id delle sessioni presenti in una cartella, in ordine alfabetico"""
+    """Gli id delle sessioni presenti in una cartella, in ordine alfabetico
 
-    percorsi = Path(cartella).glob(f"*{SUFFISSO_STREAM}")
-    return sorted(p.name.removesuffix(SUFFISSO_STREAM) for p in percorsi)
+    Basta uno dei tre file: una sessione che ha perso lo stream deve arrivare al
+    caricamento e fallire lì, con un errore nel referto, invece di sparire.
+    """
+
+    ids = set()
+    for suffisso in (SUFFISSO_STREAM, SUFFISSO_EVENTI, SUFFISSO_META):
+        ids.update(p.name.removesuffix(suffisso) for p in Path(cartella).glob(f"*{suffisso}"))
+    return sorted(ids)
 
 def _eventi_vuoti() -> pd.DataFrame:
     """Una tabella eventi con le colonne attese e nessuna riga"""

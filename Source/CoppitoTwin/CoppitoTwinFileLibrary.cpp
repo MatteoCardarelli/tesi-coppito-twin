@@ -7,6 +7,8 @@
 #include "Misc/EngineVersion.h"
 #include "Engine/Engine.h"
 #include "Engine/GameViewportClient.h"
+#include "Kismet/GameplayStatics.h"
+#include "UnrealEngine.h"
 
 FString UCoppitoTwinFileLibrary::GetLogDirectory()
 {
@@ -40,6 +42,16 @@ bool UCoppitoTwinFileLibrary::SaveStringToFile(const FString& Content, const FSt
 	if (!bSuccess)
 	{
 		UE_LOG(LogTemp, Error, TEXT("[CoppitoTwin] Scrittura FALLITA: %s"), *FullPath);
+
+		// Avviso a schermo che resta fino alla chiusura: una scrittura fallita in silenzio ha
+		// gia' prodotto un terzetto di file incoerente (diario, 25/09/2026). Chi conduce la
+		// sessione deve accorgersene prima di congedare il partecipante.
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 86400.f, FColor::Red,
+				FString::Printf(TEXT("SCRITTURA FALLITA: %s -- sessione da ripetere"), *FileName),
+				true, FVector2D(2.f, 2.f));
+		}
 	}
 
 	return bSuccess;
@@ -69,6 +81,28 @@ bool UCoppitoTwinFileLibrary::SaveLinesToFile(const TArray<FString>& Lines, cons
 	return SaveStringToFile(Content, FileName, false);
 }
 
+namespace
+{
+	// Riga JSON con la posizione dell'unico attore che porta il tag. Vuota se l'attore
+	// manca o non e' unico: il campo resta assente e la pipeline lo segnala (META_INCOMPLETI).
+	FString PosizioneDaTag(const UWorld* World, FName Tag, const TCHAR* Campo)
+	{
+		TArray<AActor*> Trovati;
+		if (World)
+		{
+			UGameplayStatics::GetAllActorsWithTag(World, Tag, Trovati);
+		}
+		if (Trovati.Num() != 1)
+		{
+			UE_LOG(LogTemp, Error, TEXT("[CoppitoTwin] %s non scritto: %d attori con tag '%s', atteso 1"),
+				Campo, Trovati.Num(), *Tag.ToString());
+			return FString();
+		}
+		const FVector P = Trovati[0]->GetActorLocation();
+		return FString::Printf(TEXT("  \"%s\": [%.1f, %.1f, %.1f],\n"), Campo, P.X, P.Y, P.Z);
+	}
+}
+
 bool UCoppitoTwinFileLibrary::SaveSessionMetadata(
 	UCharacterMovementComponent* Movement,
 	const FString& ParticipantID,
@@ -86,6 +120,12 @@ bool UCoppitoTwinFileLibrary::SaveSessionMetadata(
 	{
 		const FIntPoint Size = GEngine->GameViewport->Viewport->GetSizeXY();
 		Resolution = FString::Printf(TEXT("%dx%d"), Size.X, Size.Y);
+	}
+	else if (GSystemResolution.ResX > 0 && GSystemResolution.ResY > 0)
+	{
+		// Chiusura della finestra (Alt+F4): il viewport non c'e' piu' quando End Play scrive
+		// i metadati. Resta la risoluzione impostata dal motore, cioe' -ResX/-ResY.
+		Resolution = FString::Printf(TEXT("%dx%d"), GSystemResolution.ResX, GSystemResolution.ResY);
 	}
 
 	float MaxSpeed = 0.f, MaxAccel = 0.f, Braking = 0.f;
@@ -106,16 +146,30 @@ bool UCoppitoTwinFileLibrary::SaveSessionMetadata(
 		UE_LOG(LogTemp, Error, TEXT("[CoppitoTwin] Metadati SENZA parametri di movimento: componente nullo"));
 	}
 
+	// Il mondo si ricava dal componente di movimento: se manca, mancano anche le posizioni.
+	const UWorld* World = Movement ? Movement->GetWorld() : nullptr;
+	const FString LevelName = World ? UGameplayStatics::GetCurrentLevelName(World, true) : TEXT("sconosciuto");
+	const FString BarrierPos = PosizioneDaTag(World, TEXT("Barrier"), TEXT("barrier_pos"));
+	const FString ForkPos = PosizioneDaTag(World, TEXT("Fork"), TEXT("fork_pos"));
+
+	// L'identificativo di sessione e' il nome del file senza il suffisso: ricavarlo qui
+	// evita un pin in piu' sul nodo, e non puo' divergere dal nome dei file.
+	FString SessionID = FileName;
+	SessionID.RemoveFromEnd(TEXT("_meta.json"));
+
 	const FString Json = FString::Printf(TEXT(
 		"{\n"
 		"  \"participant_id\": \"%s\",\n"
+		"  \"session_id\": \"%s\",\n"
 		"  \"condition\": \"%s\",\n"
 		"  \"barrier_config\": \"%s\",\n"
+		"  \"level_name\": \"%s\",\n"
 		"  \"timestamp_utc\": \"%s\",\n"
 		"  \"sampling_hz\": %.1f,\n"
 		"  \"session_duration_s\": %.3f,\n"
 		"  \"stream_rows\": %d,\n"
 		"  \"event_rows\": %d,\n"
+		"%s%s"
 		"  \"min_path_cm\": %.1f,\n"
 		"  \"max_speed_cms\": %.1f,\n"
 		"  \"max_acceleration\": %.1f,\n"
@@ -128,13 +182,17 @@ bool UCoppitoTwinFileLibrary::SaveSessionMetadata(
 		"  \"machine\": \"%s\"\n"
 		"}\n"),
 		*ParticipantID,
+		*SessionID,
 		*Condition,
 		*BarrierConfig,
+		*LevelName,
 		*FDateTime::UtcNow().ToIso8601(),
 		SamplingHz,
 		SessionDurationSec,
 		StreamRows,
 		EventRows,
+		*BarrierPos,
+		*ForkPos,
 		MinPathCm,
 		MaxSpeed,
 		MaxAccel,
