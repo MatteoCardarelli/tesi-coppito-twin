@@ -10,6 +10,7 @@ SOGLIA_INVERSIONE_GRADI = 135.0   # Kalantari et al. 2023; da tarare sul pilot
 FINESTRA_INVERSIONE_S = 2.0       # a 140 cm/s ≈ U larga 2,5 m; da tarare sulla larghezza dei corridoi
 VELOCITA_VERTICALE_MINIMA_CMS = 10.0   # sopra: il passo cambia quota (scala, rampa); in piano vale 0
 PAUSA_IN_SCALA_S = 5.0            # passi in quota più vicini di così: stesso tratto, pianerottolo compreso
+DISLIVELLO_MINIMO_SCALA_CM = 100.0   # sotto: gradini e terrazze (fino a 50 cm), non una scala; primo pianerottolo a 120 cm
 
 def passi_di_marcia(sessione: Sessione) -> pd.DataFrame | None:
     """Direzione e velocità di ogni passo del compito, senza filtri"""
@@ -45,6 +46,12 @@ def tratti_in_quota(sessione: Sessione) -> list[tuple[float, float]] | None:
 
     In pianta il pianerottolo di una scala a rampe è un giro di 180°: senza questi
     intervalli ogni salita conterebbe un'inversione di marcia mai avvenuta.
+    Un tratto conta solo se il dislivello complessivo è di almeno
+    DISLIVELLO_MINIMO_SCALA_CM: due gradini non sono una scala, e un dietrofront
+    subito dopo, come davanti alla barriera sul basamento, va contato.
+    Si uniscono solo passi nello stesso verso: una scala si sale o si scende. Senza
+    questa regola la discesa dal basamento e i gradini del pavimento, a pochi
+    secondi dalla scala vera, le si attaccavano e ne prendevano il dislivello.
     """
 
     campioni = sessione.stream_compito
@@ -59,14 +66,18 @@ def tratti_in_quota(sessione: Sessione) -> list[tuple[float, float]] | None:
     in_quota = (passi["pos_z"].abs() / passi["t"]) >= VELOCITA_VERTICALE_MINIMA_CMS
     fine_passo = punti["t"].iloc[1:][in_quota].to_numpy()
     inizio_passo = punti["t"].iloc[:-1][in_quota.to_numpy()].to_numpy()
+    verso_passo = np.sign(passi["pos_z"][in_quota]).to_numpy()   # +1 sale, -1 scende
 
-    tratti: list[tuple[float, float]] = []
-    for inizio, fine in zip(inizio_passo, fine_passo):
-        if tratti and inizio - tratti[-1][1] <= PAUSA_IN_SCALA_S:
-            tratti[-1] = (tratti[-1][0], float(fine))
+    tratti: list[tuple[float, float, float]] = []   # inizio, fine, verso
+    for inizio, fine, verso in zip(inizio_passo, fine_passo, verso_passo):
+        if tratti and verso == tratti[-1][2] and inizio - tratti[-1][1] <= PAUSA_IN_SCALA_S:
+            tratti[-1] = (tratti[-1][0], float(fine), verso)
         else:
-            tratti.append((float(inizio), float(fine)))
-    return tratti
+            tratti.append((float(inizio), float(fine), verso))
+
+    quote = punti.set_index("t")["pos_z"]
+    return [(inizio, fine) for inizio, fine, _ in tratti
+            if quote.loc[inizio:fine].max() - quote.loc[inizio:fine].min() >= DISLIVELLO_MINIMO_SCALA_CM]
 
 def intervalli_di_inversione(sessione: Sessione) -> list[tuple[float, float]] | None:
     """Gli intervalli di tempo in cui il partecipante ha invertito la marcia, fuori dalle scale"""

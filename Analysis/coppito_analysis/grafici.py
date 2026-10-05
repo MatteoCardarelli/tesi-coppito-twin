@@ -22,10 +22,14 @@ EVENTI_DA_SEGNARE = {
     "TASK_END": ("X", "fine"),
 }
 
-# ramo: (colore, tratto) - i nomi sono i value dei trigger del bivio
+# ramo: (colore, tratto) - i nomi sono i value dei FORK_ENTER nel livello di Coppito 1:
+# le due alternative del compito, poi le altre scale che un partecipante può comunque prendere
 STILI_ALTERNATIVE = {
-    "left": ("#2a78d6", "-"),
-    "right": ("#eb6834", "--"),
+    "ovest": ("#2a78d6", "-"),
+    "084": ("#eb6834", "--"),
+    "073": ("#2ca02c", "-."),
+    "010": ("#8c564b", (0, (5, 1))),
+    "026": ("#e377c2", (0, (3, 1, 1, 1, 1, 1))),
 }
 
 def grafico_traiettoria(sessione: Sessione) -> Figure:

@@ -12,7 +12,7 @@ from coppito_analysis.metriche import (
     pao_pct,
     travel_time_s,
 )
-from tests.sintetici import crea_sessione, rettilineo
+from tests.sintetici import crea_sessione, percorso, rettilineo
 
 def con_eventi(eventi, durata_s=10.0):
     """Rettilineo con gli eventi indicati per indice di campione"""
@@ -38,18 +38,27 @@ def test_con_task_end_prima_di_task_start_non_si_calcola_nulla():
     assert lunghezza_percorso_cm(sessione) is None
     assert travel_time_s(sessione) is None
 
-def test_l_esitazione_usa_la_prima_partenza_dopo_il_primo_arrivo():
-    sessione = con_eventi([
-        (0, "TASK_START", ""),
-        (10, "BARRIER_DEPART", ""),
-        (20, "BARRIER_REACH", ""),
-        (60, "BARRIER_DEPART", ""),
-        (100, "BARRIER_REACH", ""),
-        (180, "BARRIER_DEPART", ""),
-        (200, "TASK_END", ""),
+def test_l_esitazione_e_il_tempo_da_fermo_nella_prima_visita():
+    """Sosta di 3 s nella prima visita; partenza spuria prima, seconda visita dopo"""
+
+    t, x, y = percorso([("dritto", 2.0), ("fermo", 3.0), ("dritto", 3.0), ("fermo", 2.0), ("dritto", 2.0)])
+    sessione = crea_sessione(t, x, y, eventi=[
+        (0.0, "TASK_START", ""),
+        (0.5, "BARRIER_DEPART", ""),
+        (1.0, "BARRIER_REACH", ""),
+        (6.5, "BARRIER_DEPART", ""),
+        (7.5, "BARRIER_REACH", ""),
+        (11.5, "BARRIER_DEPART", ""),
+        (t[-1], "TASK_END", ""),
     ])
 
-    assert esitazione_s(sessione) == pytest.approx(2.0)
+    assert esitazione_s(sessione) == pytest.approx(3.0, abs=0.1)
+
+def test_attraversare_la_zona_senza_fermarsi_non_e_esitazione():
+    sessione = con_eventi([(0, "TASK_START", ""), (20, "BARRIER_REACH", ""),
+                           (60, "BARRIER_DEPART", ""), (200, "TASK_END", "")])
+
+    assert esitazione_s(sessione) == pytest.approx(0.0)
 
 def test_l_alternativa_e_il_primo_ramo_scritto_com_e():
     sessione = con_eventi([(0, "TASK_START", ""), (100, "FORK_ENTER", "Left"),

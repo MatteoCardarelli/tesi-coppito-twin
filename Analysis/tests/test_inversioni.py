@@ -44,3 +44,31 @@ def test_il_pianerottolo_non_e_un_inversione():
 
 def test_al_piano_di_sopra_le_inversioni_si_contano_ancora():
     assert ritorni_sui_passi(salita_a_due_rampe([("dritto", 4.0), ("indietro", 4.0)])) == 1
+
+def test_due_gradini_non_sono_una_scala():
+    """Su due gradini da 25 cm, dietrofront e giù: come sul basamento della barriera
+
+    Salita prima del dietrofront e discesa dopo, così ogni finestra che contiene
+    l'inversione tocca i gradini. Se i gradini contassero come scala, l'inversione
+    sparirebbe.
+    """
+
+    sessione = crea_sessione(*percorso([("dritto", 4.0), ("indietro", 4.0)]))
+    t = sessione.stream["t"]
+    sessione.stream["pos_z"] = np.interp(t, [0.0, 3.0, 3.2, 3.4, 4.6, 4.8, 5.0, 8.0],
+                                         [0.0, 0.0, 25.0, 50.0, 50.0, 25.0, 0.0, 0.0])
+    assert ritorni_sui_passi(sessione) == 1
+
+def test_la_discesa_dal_basamento_non_si_attacca_alla_scala():
+    """Giù dal basamento, dietrofront in piano, e dopo meno di 5 s su per una scala
+
+    È il percorso di P01 nel pilot: la discesa dal basamento della barriera (50 cm)
+    e la scala vera sono vicine nel tempo ma vanno in verso opposto. Se si unissero,
+    il tratto prenderebbe il dislivello della scala e l'inversione in piano sparirebbe.
+    """
+
+    sessione = crea_sessione(*percorso([("dritto", 4.0), ("indietro", 4.0)]))
+    t = sessione.stream["t"]
+    sessione.stream["pos_z"] = np.interp(t, [0.0, 2.0, 2.4, 6.0, 8.0],
+                                         [50.0, 50.0, 0.0, 0.0, 150.0])
+    assert ritorni_sui_passi(sessione) == 1

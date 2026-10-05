@@ -30,10 +30,10 @@ def test_senza_task_end_ogni_grafico_lo_gestisce_a_modo_suo():
     assert grafico_direzione_velocita(sessione) is None
 
 def test_la_legenda_ha_una_voce_per_categoria():
-    figura = grafico_sessioni_sovrapposte([con_ramo("left"), con_ramo("left"), con_ramo("Right")])
+    figura = grafico_sessioni_sovrapposte([con_ramo("ovest"), con_ramo("ovest"), con_ramo("Ovest")])
 
     voci = [testo.get_text() for testo in figura.legends[0].get_texts()]
-    assert voci == ["left", "ramo con nome non previsto", "ingresso nel bivio"]
+    assert voci == ["ovest", "ramo con nome non previsto", "ingresso nel bivio"]
 def test_la_pianta_segna_i_tratti_in_scala():
     t, x, y = percorso([("dritto", 4.0), ("dritto", 3.0), ("dritto", 4.0)])
     sessione = crea_sessione(t, x, y)

@@ -4,6 +4,9 @@ Quando i dati per calcolare una metrica non ci sono, la funzione
 restituisce None. 
 """
 
+import numpy as np
+
+from .inversioni import VELOCITA_MINIMA_CMS
 from .sessione import Sessione
 
 FPS_SOGLIA_BASSA = 30.0   # sotto: navigazione meno fluida; usata anche da validazione
@@ -22,7 +25,13 @@ def travel_time_s(sessione: Sessione) -> float | None:
     return durata
 
 def esitazione_s(sessione: Sessione) -> float | None:
-    """Tempo passato nella zona di deliberazione davanti alla barriera"""
+    """Tempo passato fermo, o quasi, nella zona di deliberazione davanti alla barriera
+
+    La zona va da BARRIER_REACH alla prima BARRIER_DEPART successiva. Il volume copre
+    tutto l'avvicinamento, quindi la sua durata misura quanto si cammina nella zona;
+    l'esitazione è la parte di quel tempo con velocità sotto VELOCITA_MINIMA_CMS,
+    ricavata dalle posizioni come nelle inversioni.
+    """
 
     arrivo = sessione.primo_evento("BARRIER_REACH")
     if arrivo is None:
@@ -32,8 +41,14 @@ def esitazione_s(sessione: Sessione) -> float | None:
     successive = partenze.loc[partenze["t"] > arrivo["t"]]
     if successive.empty:
         return None
+    inizio, fine = arrivo["t"], successive["t"].iloc[0]
 
-    return float(successive["t"].iloc[0] - arrivo["t"])
+    punti = sessione.stream[["t", "pos_x", "pos_y"]].dropna()
+    passi = punti.diff().iloc[1:]
+    fine_passo = punti["t"].iloc[1:]
+    velocita = np.hypot(passi["pos_x"], passi["pos_y"]) / passi["t"]
+    lenti_nella_zona = (fine_passo > inizio) & (fine_passo <= fine) & (velocita < VELOCITA_MINIMA_CMS)
+    return float(passi["t"][lenti_nella_zona].sum())
 
 def alternativa_scelta(sessione: Sessione) -> str | None:
     """Il ramo imboccato per primo al bivio: il `value` del primo FORK_ENTER"""
