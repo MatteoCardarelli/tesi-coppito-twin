@@ -3,6 +3,7 @@
 Uso, dalla cartella Analysis:
     python -m scripts.analizza
     python -m scripts.analizza --log <cartella dei log> --uscita <cartella dei risultati>
+    python -m scripts.analizza --min-path-cm 4600   (sostituisce il minimo dei metadati)
 """
 
 import argparse
@@ -25,16 +26,20 @@ def main():
     parser = argparse.ArgumentParser(description="Analizza tutte le sessioni di una cartella di log")
     parser.add_argument("--log", type=Path, default=SAVED / "BehaviourLogs", help="cartella dei log")
     parser.add_argument("--uscita", type=Path, default=SAVED / "Analisi", help="cartella dei risultati")
+    parser.add_argument(
+        "--min-path-cm", type=float, default=None,
+        help="percorso minimo da usare al posto di quello dei metadati, solo in memoria",
+    )
     argomenti = parser.parse_args()
 
-    tabella, rilievi = analizza_studio(argomenti.log)
+    tabella, rilievi = analizza_studio(argomenti.log, argomenti.min_path_cm)
     percorso_sessioni, percorso_rilievi = esporta(tabella, rilievi, argomenti.uscita)
 
     grafici = argomenti.uscita / "grafici"
     if grafici.exists():
         shutil.rmtree(grafici)
 
-    sessioni, _ = carica_tutte(argomenti.log)
+    sessioni, _ = carica_tutte(argomenti.log, argomenti.min_path_cm)
     for sessione in sessioni:
         salva(grafico_traiettoria(sessione), grafici / "traiettorie" / f"{sessione.session_id}.png")
         figura = grafico_direzione_velocita(sessione)

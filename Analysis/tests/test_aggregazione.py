@@ -109,6 +109,19 @@ def test_l_analisi_esegue_i_controlli_fra_sessioni_e_l_export_scrive_il_bom(tmp_
         "CONFIGURAZIONE_DIVERSA", "PARTECIPANTE_RIPETUTO", "ALTERNATIVE_OSSERVATE"]
     assert percorso_sessioni.read_bytes()[:3] == b"\xef\xbb\xbf"
 
+def test_il_minimo_passato_all_analisi_sostituisce_quello_dei_metadati(tmp_path):
+    scrivi_sessione(tmp_path, sessione("P01", min_path_cm=2000.0))
+
+    sessioni, rilievi = analizza_studio(tmp_path, min_path_cm=1300.0)
+
+    assert sessioni["min_path_cm"].tolist() == [1300.0]
+    assert sessioni["utilizzabile"].tolist() == [True]
+    assert "MIN_PATH_SOSTITUITO" in rilievi["codice"].tolist()
+
+    senza, _ = analizza_studio(tmp_path)   # il file non è stato toccato
+    assert senza["min_path_cm"].tolist() == [2000.0]
+    assert senza["utilizzabile"].tolist() == [False]
+
 def test_esportare_uno_studio_vuoto_rimuove_il_vecchio_sessioni_csv(tmp_path):
     scrivi_sessione(tmp_path, sessione("P01"))
     uscita = tmp_path / "output"

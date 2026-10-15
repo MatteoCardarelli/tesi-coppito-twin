@@ -29,8 +29,25 @@ CONFIGURAZIONE_COSTANTE = (   # identiche per protocollo in tutte le sessioni de
 
 COLONNE_RILIEVI = ("session_id", "livello", "codice", "messaggio")
 
-def carica_tutte(cartella: str | Path) -> tuple[list[Sessione], Referto]:
-    """Carica e valida tutte le sessioni di una cartella"""
+def sostituisci_min_path(sessione: Sessione, valore_cm: float) -> None:
+    """Sostituisce in memoria il percorso minimo dei metadati, e lo dichiara nel referto"""
+
+    originale = sessione.meta.get("min_path_cm")
+    sessione.meta["min_path_cm"] = float(valore_cm)
+    sessione.referto.aggiungi(
+        INFO,
+        "MIN_PATH_SOSTITUITO",
+        f"min_path_cm {originale} nei metadati, {float(valore_cm):.1f} usato nell'analisi",
+    )
+
+def carica_tutte(
+    cartella: str | Path, min_path_cm: float | None = None
+) -> tuple[list[Sessione], Referto]:
+    """Carica e valida tutte le sessioni di una cartella
+
+    Con min_path_cm il percorso minimo dei metadati viene sostituito prima della
+    validazione, solo in memoria: i file delle sessioni non vengono toccati.
+    """
     studio = Referto("STUDIO")
     sessioni = []
 
@@ -44,6 +61,8 @@ def carica_tutte(cartella: str | Path) -> tuple[list[Sessione], Referto]:
                 f"{session_id}: {type(errore).__name__}: {errore}",
             )
             continue
+        if min_path_cm is not None:
+            sostituisci_min_path(sessione, min_path_cm)
         valida(sessione)
         sessioni.append(sessione)
 
@@ -186,10 +205,12 @@ CONTROLLI_STUDIO = (
     controlla_alternative,
 )
 
-def analizza_studio(cartella: str | Path) -> tuple[pd.DataFrame, pd.DataFrame]:
+def analizza_studio(
+    cartella: str | Path, min_path_cm: float | None = None
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Dalla cartella dei log alle due tabelle dello studio: sessioni e rilievi"""
 
-    sessioni, studio = carica_tutte(cartella)
+    sessioni, studio = carica_tutte(cartella, min_path_cm)
     tabella = tabella_sessioni(sessioni)
 
     for controllo in CONTROLLI_STUDIO:
